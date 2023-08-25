@@ -1,0 +1,80 @@
+2023-01-02 04:38:32,016 DEBUG log_decor Функция main() вызвана из файла client.py
+2023-01-02 04:38:32,016 DEBUG      log_decor Функция main() вызвана из файла client.py
+2023-01-02 04:38:32,017 INFO       client Запуск клиента
+2023-01-02 04:38:32,017 INFO       client IP не был указан, по умолчанию "localhost"
+2023-01-02 04:38:32,017 INFO       client Порт не был указан, по умолчанию "7777"
+2023-01-02 04:38:32,020 DEBUG log_decor Функция presence() вызвана из функции main
+2023-01-02 04:38:32,020 DEBUG      log_decor Функция presence() вызвана из функции main
+2023-01-02 04:38:32,021 DEBUG log_decor Функция get_server_msg(msg = b'"Hellow Sherlock, welcome! The connection is fine!"') вызвана из функции main
+2023-01-02 04:38:32,021 DEBUG      log_decor Функция get_server_msg(msg = b'"Hellow Sherlock, welcome! The connection is fine!"') вызвана из функции main
+2023-01-02 04:38:32,021 INFO       client Hellow Sherlock, welcome! The connection is fine!
+2023-01-02 04:38:39,308 DEBUG log_decor Функция main() вызвана из файла client.py
+2023-01-02 04:38:39,308 DEBUG      log_decor Функция main() вызвана из файла client.py
+2023-01-02 04:38:39,308 INFO       client Запуск клиента
+2023-01-02 04:38:39,308 INFO       client IP не был указан, по умолчанию "localhost"
+2023-01-02 04:38:39,308 INFO       client Порт не был указан, по умолчанию "7777"
+2023-01-02 04:38:39,312 DEBUG log_decor Функция presence() вызвана из функции main
+2023-01-02 04:38:39,312 DEBUG      log_decor Функция presence() вызвана из функции main
+2023-01-02 04:38:39,314 DEBUG log_decor Функция get_server_msg(msg = b'"Hellow Sherlock, welcome! The connection is fine!"') вызвана из функции main
+2023-01-02 04:38:39,314 DEBUG      log_decor Функция get_server_msg(msg = b'"Hellow Sherlock, welcome! The connection is fine!"') вызвана из функции main
+2023-01-02 04:38:39,314 INFO       client Hellow Sherlock, welcome! The connection is fine!
+2023-01-02 04:38:40,717 DEBUG log_decor Функция main() вызвана из файла client.py
+2023-01-02 04:38:40,717 DEBUG      log_decor Функция main() вызвана из файла client.py
+2023-01-02 04:38:40,718 INFO       client Запуск клиента
+2023-01-02 04:38:40,718 INFO       client IP не был указан, по умолчанию "localhost"
+2023-01-02 04:38:40,718 INFO       client Порт не был указан, по умолчанию "7777"
+2023-01-02 04:38:40,722 DEBUG log_decor Функция presence() вызвана из функции main
+2023-01-02 04:38:40,722 DEBUG      log_decor Функция presence() вызвана из функции main
+2023-01-02 04:38:40,723 DEBUG log_decor Функция get_server_msg(msg = b'"Hellow Sherlock, welcome! The connection is fine!"') вызвана из функции main
+2023-01-02 04:38:40,723 DEBUG      log_decor Функция get_server_msg(msg = b'"Hellow Sherlock, welcome! The connection is fine!"') вызвана из функции main
+2023-01-02 04:38:40,723 INFO       client Hellow Sherlock, welcome! The connection is fine!
+2023-01-02 04:39:13,294 DEBUG log_decor Функция main() вызвана из файла client.py
+2023-01-02 04:39:13,294 DEBUG      log_decor Функция main() вызвана из файла client.py
+2023-01-02 04:39:13,294 INFO       client Запуск клиента
+2023-01-02 04:39:13,294 INFO       client IP не был указан, по умолчанию "localhost"
+2023-01-02 04:39:13,294 INFO       client Порт не был указан, по умолчанию "7777"
+2023-01-02 04:39:13,298 DEBUG log_decor Функция presence() вызвана из функции main
+2023-01-02 04:39:13,298 DEBUG      log_decor Функция presence() вызвана из функции main
+2023-01-02 04:39:13,299 DEBUG log_decor Функция get_server_msg(msg = b'"Hellow Sherlock, welcome! The connection is fine!"') вызвана из функции main
+2023-01-02 04:39:13,299 DEBUG      log_decor Функция get_server_msg(msg = b'"Hellow Sherlock, welcome! The connection is fine!"') вызвана из функции main
+2023-01-02 04:39:13,299 INFO       client Hellow Sherlock, welcome! The connection is fine!
+2023-01-02 04:39:15,197 DEBUG log_decor Функция main() вызвана из файла client.py
+2023-01-02 04:39:15,197 DEBUG      log_decor Функция main() вызвана из файла client.py
+2023-01-02 04:39:15,197 INFO       client Запуск клиента
+2023-01-02 04:39:15,197 INFO       client IP не был указан, по умолчанию "localhost"
+2023-01-02 04:39:15,197 INFO       client Порт не был указан, по умолчанию "7777"
+2023-01-02 04:39:15,202 DEBUG log_decor Функция presence() вызвана из функции main
+2023-01-02 04:39:15,202 DEBUG      log_decor Функция presence() вызвана из функции main
+2023-01-02 04:39:15,202 DEBUG log_decor Функция get_server_msg(msg = b'"Hellow Sherlock, welcome! The connection is fine!"') вызвана из функции main
+2023-01-02 04:39:15,202 DEBUG      log_decor Функция get_server_msg(msg = b'"Hellow Sherlock, welcome! The connection is fine!"') вызвана из функции main
+2023-01-02 04:39:15,203 INFO       client Hellow Sherlock, welcome! The connection is fine!
+2023-01-02 04:39:16,086 DEBUG log_decor Функция main() вызвана из файла client.py
+2023-01-02 04:39:16,086 DEBUG      log_decor Функция main() вызвана из файла client.py
+2023-01-02 04:39:16,086 INFO       client Запуск клиента
+2023-01-02 04:39:16,086 INFO       client IP не был указан, по умолчанию "localhost"
+2023-01-02 04:39:16,086 INFO       client Порт не был указан, по умолчанию "7777"
+2023-01-02 04:39:16,090 DEBUG log_decor Функция presence() вызвана из функции main
+2023-01-02 04:39:16,090 DEBUG      log_decor Функция presence() вызвана из функции main
+2023-01-02 04:39:16,091 DEBUG log_decor Функция get_server_msg(msg = b'"Hellow Sherlock, welcome! The connection is fine!"') вызвана из функции main
+2023-01-02 04:39:16,091 DEBUG      log_decor Функция get_server_msg(msg = b'"Hellow Sherlock, welcome! The connection is fine!"') вызвана из функции main
+2023-01-02 04:39:16,091 INFO       client Hellow Sherlock, welcome! The connection is fine!
+2023-01-02 04:39:16,605 DEBUG log_decor Функция main() вызвана из файла client.py
+2023-01-02 04:39:16,605 DEBUG      log_decor Функция main() вызвана из файла client.py
+2023-01-02 04:39:16,605 INFO       client Запуск клиента
+2023-01-02 04:39:16,605 INFO       client IP не был указан, по умолчанию "localhost"
+2023-01-02 04:39:16,605 INFO       client Порт не был указан, по умолчанию "7777"
+2023-01-02 04:39:16,610 DEBUG log_decor Функция presence() вызвана из функции main
+2023-01-02 04:39:16,610 DEBUG      log_decor Функция presence() вызвана из функции main
+2023-01-02 04:39:16,610 DEBUG log_decor Функция get_server_msg(msg = b'"Hellow Sherlock, welcome! The connection is fine!"') вызвана из функции main
+2023-01-02 04:39:16,610 DEBUG      log_decor Функция get_server_msg(msg = b'"Hellow Sherlock, welcome! The connection is fine!"') вызвана из функции main
+2023-01-02 04:39:16,611 INFO       client Hellow Sherlock, welcome! The connection is fine!
+2023-01-02 04:39:17,173 DEBUG log_decor Функция main() вызвана из файла client.py
+2023-01-02 04:39:17,173 DEBUG      log_decor Функция main() вызвана из файла client.py
+2023-01-02 04:39:17,173 INFO       client Запуск клиента
+2023-01-02 04:39:17,173 INFO       client IP не был указан, по умолчанию "localhost"
+2023-01-02 04:39:17,173 INFO       client Порт не был указан, по умолчанию "7777"
+2023-01-02 04:39:17,177 DEBUG log_decor Функция presence() вызвана из функции main
+2023-01-02 04:39:17,177 DEBUG      log_decor Функция presence() вызвана из функции main
+2023-01-02 04:39:17,178 DEBUG log_decor Функция get_server_msg(msg = b'"Hellow Sherlock, welcome! The connection is fine!"') вызвана из функции main
+2023-01-02 04:39:17,178 DEBUG      log_decor Функция get_server_msg(msg = b'"Hellow Sherlock, welcome! The connection is fine!"') вызвана из функции main
+2023-01-02 04:39:17,179 INFO       client Hellow Sherlock, welcome! The connection is fine!
