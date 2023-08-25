@@ -1,0 +1,6 @@
+2022-12-23 16:08:58,544 INFO       server Запуск сервера
+2022-12-23 16:08:58,545 INFO       server IP не был указан, по умолчанию "localhost"
+2022-12-23 16:08:58,545 INFO       server Порт не был указан, по умолчанию "7777"
+2022-12-23 16:08:58,545 INFO       server Listening to client localhost:7777
+2022-12-23 16:09:03,715 INFO       server Получен запрос на соединение от ('127.0.0.1', 62097)
+2022-12-23 16:09:03,715 INFO       server {'action': 'presence', 'time': 1671800943.0, 'type': 'connection check', 'user': {'account_name': 'Sherlock', 'status': 'I am here!'}}

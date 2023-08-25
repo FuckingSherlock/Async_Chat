@@ -1,0 +1,4 @@
+2022-12-23 16:09:03,712 INFO       client Запуск клиента
+2022-12-23 16:09:03,712 INFO       client IP не был указан, по умолчанию "localhost"
+2022-12-23 16:09:03,712 INFO       client Порт не был указан, по умолчанию "7777"
+2022-12-23 16:09:03,716 INFO       client Hellow Sherlock, welcome! The connection is fine!
