@@ -1,0 +1,350 @@
+
+<!DOCTYPE html>
+
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>Server &#8212; документация Acync Chat 1</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/translations.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="genindex.html" />
+    <link rel="search" title="Поиск" href="search.html" />
+    <link rel="next" title="1 Server DB" href="server_db.html" />
+    <link rel="prev" title="1 Server Meta" href="server_meta.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="server">
+<h1><span class="sectnum">1 </span>Server<a class="headerlink" href="#server" title="Permalink to this heading">¶</a></h1>
+<p>Содержание документации по работе сервера.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">server_meta</span> <span class="kn">import</span> <span class="n">ServerVerifier</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+<span class="kn">from</span> <span class="nn">select</span> <span class="kn">import</span> <span class="n">select</span>
+<span class="kn">from</span> <span class="nn">descr</span> <span class="kn">import</span> <span class="n">Port</span>
+<span class="kn">from</span> <span class="nn">server_database.server_db</span> <span class="kn">import</span> <span class="n">Storage</span>
+<span class="kn">import</span> <span class="nn">bcrypt</span>
+
+
+<span class="k">class</span> <span class="nc">Server</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">ServerVerifier</span><span class="p">):</span>
+    <span class="n">port</span> <span class="o">=</span> <span class="n">Port</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">,</span> <span class="n">database</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Основной класс сервера, </span>
+<span class="sd">        принимает адрес(address = [ip, port]) и базу данных сервера.</span>
+<span class="sd">        Основан на проверочном метаклассе ServerVerifier.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">database</span> <span class="o">=</span> <span class="n">database</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">address</span> <span class="o">=</span> <span class="n">address</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">port</span> <span class="o">=</span> <span class="n">address</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># КАКОГО ЭТО ВООБЩЕ РАБОТАЕТ????</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">addr</span> <span class="o">=</span> <span class="n">address</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">readers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">writers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">requests</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">s</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">all_clients</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">clients_list</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">all_clients</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">all_clients</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">listening_socket</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Метод создания сокета сервера&#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">s</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">s</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">s</span><span class="o">.</span><span class="n">settimeout</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">s</span><span class="o">.</span><span class="n">listen</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Serv addr </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">s</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">print_stage</span><span class="p">():</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Метод оповещающий о старте сервера&#39;&#39;&#39;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Сервер запущен&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">check_pwd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">pwd</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Метод проверки пароля пользователя&#39;&#39;&#39;</span>
+        <span class="n">server_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">get_client_pwd</span><span class="p">(</span><span class="n">user</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">server_hash</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">pwd</span><span class="p">,</span> <span class="n">server_hash</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">bcrypt</span><span class="o">.</span><span class="n">checkpw</span><span class="p">(</span><span class="n">pwd</span><span class="p">,</span> <span class="n">server_hash</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">accept_conn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">connect</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Метод принятия запроса на соединение от клиента&#39;&#39;&#39;</span>
+        <span class="n">sock</span><span class="p">,</span> <span class="n">addr</span> <span class="o">=</span> <span class="n">connect</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">sock</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Получен запрос на соединение от </span><span class="si">{</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">(</span><span class="si">{</span><span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">) </span><span class="si">{</span><span class="n">name</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">sock</span><span class="o">.</span><span class="n">setblocking</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;recip&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                   <span class="s1">&#39;sender&#39;</span><span class="p">:</span> <span class="s1">&#39;server&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="s1">&#39;act&#39;</span><span class="p">:</span> <span class="s1">&#39;INFO&#39;</span><span class="p">}</span>
+            <span class="n">pwd</span> <span class="o">=</span> <span class="n">name</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_clients</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_clients</span><span class="p">:</span>
+                    <span class="n">access</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_pwd</span><span class="p">(</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">pwd</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">access</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Проверка пароля неудачно&#39;</span><span class="p">)</span>
+                        <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Вы ввели неверный пароль&#39;</span>
+                        <span class="n">msg_enc</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                        <span class="n">sock</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">msg_enc</span><span class="p">)</span>
+                        <span class="n">sock</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                        <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;000&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Проверка пароля успешна&#39;</span><span class="p">)</span>
+                        <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Успешное подключение&#39;</span>
+                        <span class="n">msg_enc</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                        <span class="n">sock</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">msg_enc</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">pwd</span> <span class="o">=</span> <span class="n">bcrypt</span><span class="o">.</span><span class="n">hashpw</span><span class="p">(</span><span class="n">pwd</span><span class="p">,</span> <span class="n">bcrypt</span><span class="o">.</span><span class="n">gensalt</span><span class="p">())</span>
+                    <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Регистрация прошла успешно&#39;</span>
+                    <span class="n">msg_enc</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                    <span class="n">sock</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">msg_enc</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">NAME&amp;PWD ERROR</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;000&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="n">sock</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">pwd</span>
+
+    <span class="k">def</span> <span class="nf">read_requests</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sock</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Метод проверки наличия сообщений от клиентов&#39;&#39;&#39;</span>
+        <span class="n">inp</span><span class="p">,</span> <span class="n">w_clients</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">writers</span>
+        <span class="n">responses</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">w_clients</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">w_clients</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">==</span> <span class="n">sock</span><span class="p">:</span>
+                <span class="n">sender_name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">sock</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">data</span><span class="p">:</span>
+                <span class="n">responses</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;recip&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span><span class="n">sender_name</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;act&#39;</span><span class="p">]]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Клиент </span><span class="si">{</span><span class="n">sender_name</span><span class="si">}</span><span class="s2"> отключился...&quot;</span><span class="p">)</span>
+                <span class="n">inp</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">sock</span><span class="p">)</span>
+                <span class="k">del</span> <span class="n">w_clients</span><span class="p">[</span><span class="n">sender_name</span><span class="p">]</span>
+                <span class="n">sock</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">return</span> <span class="n">responses</span><span class="p">,</span> <span class="n">inp</span><span class="p">,</span> <span class="n">w_clients</span>
+
+    <span class="k">def</span> <span class="nf">write_responses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r_clients</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Метод обработки и отправки ответов на сообщения от клиентов&#39;&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">recip</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">requests</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">sender</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">requests</span><span class="p">[</span><span class="n">recip</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">requests</span><span class="p">[</span><span class="n">recip</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">act</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">requests</span><span class="p">[</span><span class="n">recip</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">act</span> <span class="o">!=</span> <span class="s1">&#39;msg&#39;</span> <span class="ow">and</span> <span class="n">recip</span> <span class="o">==</span> <span class="s1">&#39;server&#39;</span><span class="p">:</span>
+                <span class="n">answ_contact</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                <span class="n">req_contact</span> <span class="o">=</span> <span class="n">message</span>
+                <span class="k">if</span> <span class="n">act</span> <span class="o">==</span> <span class="s1">&#39;add_contact&#39;</span><span class="p">:</span>
+                    <span class="n">answer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">add_contact</span><span class="p">(</span><span class="n">sender</span><span class="p">,</span> <span class="n">req_contact</span><span class="p">)</span>
+                    <span class="n">answ_contact</span> <span class="o">=</span> <span class="n">answer</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">answer</span> <span class="o">=</span> <span class="n">answer</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="n">act</span> <span class="o">==</span> <span class="s1">&#39;del_contact&#39;</span><span class="p">:</span>
+                    <span class="n">answer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">del_contact</span><span class="p">(</span><span class="n">sender</span><span class="p">,</span> <span class="n">req_contact</span><span class="p">)</span>
+                    <span class="n">answ_contact</span> <span class="o">=</span> <span class="n">answer</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">answer</span> <span class="o">=</span> <span class="n">answer</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="n">act</span> <span class="o">==</span> <span class="s1">&#39;get_contacts&#39;</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;get_contacts&#39;</span><span class="p">)</span>
+                    <span class="n">answer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">get_contacts</span><span class="p">(</span><span class="n">sender</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">answer</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                        <span class="n">answer</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">answer</span><span class="p">]</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">answer</span><span class="p">)</span>
+
+                <span class="k">elif</span> <span class="n">act</span> <span class="o">==</span> <span class="s1">&#39;get_connected&#39;</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;get_connected&#39;</span><span class="p">)</span>
+                    <span class="n">answer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">get_connected</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">answer</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                        <span class="n">answer</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">answer</span><span class="p">]</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">answer</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">act</span> <span class="o">==</span> <span class="s1">&#39;sync_contacts&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">add_contact</span><span class="p">(</span><span class="n">sender</span><span class="p">,</span> <span class="n">req_contact</span><span class="p">)</span>
+                    <span class="n">answer</span> <span class="o">=</span> <span class="s1">&#39;Контакты синхронизированы&#39;</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;recip&#39;</span><span class="p">:</span> <span class="n">sender</span><span class="p">,</span>
+                       <span class="s1">&#39;sender&#39;</span><span class="p">:</span> <span class="s1">&#39;server&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">answer</span><span class="p">,</span>
+                       <span class="s1">&#39;act&#39;</span><span class="p">:</span> <span class="n">act</span><span class="p">}</span>
+                <span class="k">if</span> <span class="n">answ_contact</span><span class="p">:</span>
+                    <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;contact&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">answ_contact</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="n">msg_enc</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                <span class="n">sock</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">readers</span><span class="p">[</span><span class="n">sender</span><span class="p">]</span>
+                <span class="n">sock</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">msg_enc</span><span class="p">)</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">requests</span><span class="p">[</span><span class="s1">&#39;server&#39;</span><span class="p">]</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">recip</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;recip&#39;</span><span class="p">:</span> <span class="s1">&#39;all&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;sender&#39;</span><span class="p">:</span> <span class="n">sender</span><span class="p">,</span>
+                       <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">message</span><span class="p">}</span>
+                <span class="n">msg_enc</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">requests</span><span class="p">[</span><span class="s1">&#39;all&#39;</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">sock</span> <span class="ow">in</span> <span class="n">r_clients</span><span class="p">:</span>
+                    <span class="n">sock</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">msg_enc</span><span class="p">)</span>
+                    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">recip</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">readers</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                    <span class="n">sock</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">readers</span><span class="p">[</span><span class="n">recip</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">sock</span> <span class="ow">in</span> <span class="n">r_clients</span><span class="p">:</span>
+                        <span class="n">msg</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;recip&#39;</span><span class="p">:</span> <span class="n">recip</span><span class="p">,</span>
+                               <span class="s1">&#39;sender&#39;</span><span class="p">:</span> <span class="n">sender</span><span class="p">,</span>
+                               <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">message</span><span class="p">}</span>
+                        <span class="n">msg_enc</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                        <span class="n">sock</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">msg_enc</span><span class="p">)</span>
+                        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">requests</span><span class="p">[</span><span class="n">recip</span><span class="p">]</span>
+                        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">readers</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                            <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="n">sender</span><span class="p">:</span>
+                                <span class="n">msg</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;recip&#39;</span><span class="p">:</span> <span class="n">sender</span><span class="p">,</span>
+                                       <span class="s1">&#39;sender&#39;</span><span class="p">:</span> <span class="s1">&#39;server&#39;</span><span class="p">,</span>
+                                       <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="s1">&#39;Получатель оффлайн&#39;</span><span class="p">}</span>
+                                <span class="n">msg_enc</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">readers</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">msg_enc</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">mainloop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Метод запуска сервера&#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">listening_socket</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">print_stage</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">read</span><span class="p">,</span> <span class="n">write</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">,</span> <span class="p">[],</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">conn</span> <span class="ow">in</span> <span class="n">read</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">conn</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">requests</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">writers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_requests</span><span class="p">(</span><span class="n">conn</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">sock</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">pwd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">accept_conn</span><span class="p">(</span><span class="n">conn</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;writer&#39;</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">writers</span><span class="p">[</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">sock</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sock</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">client_login</span><span class="p">(</span>
+                            <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">addr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">addr</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">pwd</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;reader&#39;</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">readers</span><span class="p">[</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">sock</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sock</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">client_login</span><span class="p">(</span>
+                            <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">addr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">addr</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">pwd</span><span class="p">)</span>
+                    <span class="n">all_clients</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">clients_list</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">all_clients</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">all_clients</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">requests</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write_responses</span><span class="p">(</span><span class="n">write</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">run_server</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;Функция запуска сервера&#39;&#39;&#39;</span>
+    <span class="n">database</span> <span class="o">=</span> <span class="n">Storage</span><span class="p">()</span>
+    <span class="n">srv</span> <span class="o">=</span> <span class="n">Server</span><span class="p">((</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">7777</span><span class="p">),</span> <span class="n">database</span><span class="p">)</span>
+    <span class="n">srv</span><span class="o">.</span><span class="n">mainloop</span><span class="p">()</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">run_server</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Acync Chat</a></h1>
+
+
+
+
+
+
+
+
+<h3>Навигация</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="client_read.html"><span class="sectnum">1 </span>Client Read</a></li>
+<li class="toctree-l1"><a class="reference internal" href="client_start.html"><span class="sectnum">1 </span>Client Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="client_write.html"><span class="sectnum">1 </span>Client Write</a></li>
+<li class="toctree-l1"><a class="reference internal" href="client_meta.html"><span class="sectnum">1 </span>Client Meta</a></li>
+<li class="toctree-l1"><a class="reference internal" href="client_db.html"><span class="sectnum">1 </span>Client DB</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui_login.html"><span class="sectnum">1 </span>GUI Login</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui_main.html"><span class="sectnum">1 </span>GUI Main</a></li>
+<li class="toctree-l1"><a class="reference internal" href="descr.html"><span class="sectnum">1 </span>Descr</a></li>
+<li class="toctree-l1"><a class="reference internal" href="server_meta.html"><span class="sectnum">1 </span>Server Meta</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#"><span class="sectnum">1 </span>Server</a></li>
+<li class="toctree-l1"><a class="reference internal" href="server_db.html"><span class="sectnum">1 </span>Server DB</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="server_meta.html" title="предыдущая глава"><span class="sectnum">1 </span>Server Meta</a></li>
+      <li>Next: <a href="server_db.html" title="следующая глава"><span class="sectnum">1 </span>Server DB</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Быстрый поиск</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Искать" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, Kirill.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/server.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

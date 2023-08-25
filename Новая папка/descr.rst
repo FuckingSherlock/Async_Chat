@@ -1,0 +1,2 @@
+.. automodule:: descr
+    :members:
