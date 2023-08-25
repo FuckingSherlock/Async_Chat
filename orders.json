@@ -1,0 +1,18 @@
+{
+    "orders": [
+        {
+            "item": "футболка",
+            "quantity": "5",
+            "price": "500",
+            "buyer": "sherlock",
+            "date": "20.11.22"
+        },
+        {
+            "item": "футболка",
+            "quantity": "5",
+            "price": "500",
+            "buyer": "sherlock",
+            "date": "20.11.22"
+        }
+    ]
+}
